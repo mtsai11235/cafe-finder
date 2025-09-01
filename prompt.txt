@@ -1,0 +1,4 @@
+Create an HTML + Javascript web app where a user can search for nearby
+cafes. Use the Google Maps API for loading a map and searching for cafes.
+Start with making a minimum viable product to ensure all features are correctly
+implemented.

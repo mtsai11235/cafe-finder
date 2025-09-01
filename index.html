@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cafe Finder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cafe Finder</h1>
+        </header>
+        
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search for cafes...">
+            <button id="search-button">Search</button>
+            <button id="locate-me">Use My Location</button>
+        </div>
+        
+        <div class="content">
+            <div id="map"></div>
+            <div id="results-list">
+                <h2>Nearby Cafes</h2>
+                <div id="places-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API key configuration system (supports local dev and deployment) -->
+    <script src="config.js"></script>
+    <script src="deploy-config.js"></script>
+    <script src="script.js"></script>
+    <!-- Google Maps API script with proper async loading -->
+    <script>
+        // Check if ad blockers might be causing issues
+        function checkForAdBlockers() {
+            const warningDiv = document.createElement('div');
+            warningDiv.id = 'adblocker-warning';
+            warningDiv.style.display = 'none';
+            warningDiv.style.position = 'fixed';
+            warningDiv.style.top = '0';
+            warningDiv.style.left = '0';
+            warningDiv.style.width = '100%';
+            warningDiv.style.padding = '10px';
+            warningDiv.style.backgroundColor = '#fff3cd';
+            warningDiv.style.color = '#856404';
+            warningDiv.style.textAlign = 'center';
+            warningDiv.style.zIndex = '9999';
+            warningDiv.innerHTML = 'Ad blocker detected. This may prevent some features from working correctly. ' +
+                'Please disable your ad blocker or add this site to your allowlist for the best experience.';
+            document.body.appendChild(warningDiv);
+            
+            // Create a test element to detect ad blockers
+            const testElement = document.createElement('div');
+            testElement.className = 'ads ad adsbox doubleclick ad-placement carbon-ads';
+            testElement.style.height = '1px';
+            testElement.style.position = 'absolute';
+            testElement.style.left = '-9999px';
+            document.body.appendChild(testElement);
+            
+            // Check if the test element is hidden by an ad blocker
+            setTimeout(function() {
+                if (testElement.offsetHeight === 0) {
+                    document.getElementById('adblocker-warning').style.display = 'block';
+                    console.warn('Ad blocker detected. Some Google Maps features may not work correctly.');
+                }
+                document.body.removeChild(testElement);
+            }, 100);
+        }
+
+        // Load the Google Maps script once the page is ready
+        window.addEventListener('load', function() {
+            // Check for ad blockers
+            checkForAdBlockers();
+            
+            // Load Google Maps using our deployment-friendly configuration
+            window.API_CONFIG.loadGoogleMapsScript();
+        });
+        
+        // Define a global error handler for Google Maps API errors
+        window.gm_authFailure = function() {
+            console.error('Google Maps authentication error');
+            const mapDiv = document.getElementById('map');
+            if (mapDiv) {
+                mapDiv.innerHTML = '<div style="text-align:center;padding:20px;"><h3>Google Maps API Error</h3>' +
+                    '<p>There was an error authenticating with Google Maps. Please check your API key.</p></div>';
+            }
+        };
+    </script>
+</body>
+</html>
