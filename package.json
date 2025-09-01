@@ -4,8 +4,9 @@
   "description": "A web app to find nearby cafes using Google Maps API",
   "main": "index.html",
   "scripts": {
-    "build": "node vercel-build.js",
-    "dev": "npx http-server -o"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
   },
   "keywords": [
     "google-maps",
@@ -18,7 +19,9 @@
   },
   "author": "",
   "license": "MIT",
-  "vercel": {
-    "outputDirectory": "dist"
+  "dependencies": {
+    "next": "^13.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }
