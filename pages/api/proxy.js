@@ -1,35 +1,32 @@
-// Serverless function to proxy Google Maps API requests
-// This keeps our API key secure on the server side
-
+/**
+ * Proxy endpoint for Google Maps API requests
+ * This keeps our API key secure on the server side
+ */
 import https from 'https';
+import { setCorsHeaders, handleOptions, validateMethod, getApiKey, handleError } from '../../lib/api-utils';
+
+// Valid Google Maps API endpoints that can be proxied
+const VALID_ENDPOINTS = [
+  'maps/api/place/nearbysearch/json',
+  'maps/api/place/details/json',
+  'maps/api/place/textsearch/json',
+  'maps/api/geocode/json'
+];
 
 export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  // Handle OPTIONS request (preflight)
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-  
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
   try {
-    // Get API key from environment variable
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    // Set CORS headers
+    setCorsHeaders(res);
     
-    if (!apiKey) {
-      return res.status(500).json({ 
-        error: 'API key not configured',
-        message: 'The Google Maps API key is not set in the environment variables.'
-      });
-    }
+    // Handle OPTIONS request (preflight)
+    if (handleOptions(req, res)) return;
+    
+    // Validate request method
+    if (!validateMethod(req, res, ['GET'])) return;
+
+    // Get API key with validation
+    const apiKey = getApiKey(res);
+    if (!apiKey) return;
     
     // Get the endpoint and parameters from the request
     const endpoint = req.query.endpoint;
@@ -42,14 +39,7 @@ export default async function handler(req, res) {
     params.key = apiKey;
     
     // Validate the endpoint
-    const validEndpoints = [
-      'maps/api/place/nearbysearch/json',
-      'maps/api/place/details/json',
-      'maps/api/place/textsearch/json',
-      'maps/api/geocode/json'
-    ];
-    
-    if (!endpoint || !validEndpoints.includes(endpoint)) {
+    if (!endpoint || !VALID_ENDPOINTS.includes(endpoint)) {
       return res.status(400).json({ 
         error: 'Invalid endpoint',
         message: 'The requested endpoint is not supported.'
@@ -71,15 +61,15 @@ export default async function handler(req, res) {
     res.status(200).json(googleResponse);
     
   } catch (error) {
-    console.error('Proxy error:', error);
-    res.status(500).json({ 
-      error: 'Proxy error',
-      message: error.message
-    });
+    handleError(res, error, 'Error proxying request to Google Maps API');
   }
 }
 
-// Helper function to fetch data from Google Maps API
+/**
+ * Helper function to fetch data from Google Maps API
+ * @param {string} requestUrl - The full URL to request
+ * @returns {Promise<object>} - Parsed JSON response
+ */
 function fetchFromGoogleMaps(requestUrl) {
   return new Promise((resolve, reject) => {
     https.get(requestUrl, (response) => {
@@ -96,12 +86,11 @@ function fetchFromGoogleMaps(requestUrl) {
           const parsedData = JSON.parse(data);
           resolve(parsedData);
         } catch (error) {
-          reject(error);
+          reject(new Error('Failed to parse Google Maps API response'));
         }
       });
-      
     }).on('error', (error) => {
-      reject(error);
+      reject(new Error(`Failed to connect to Google Maps API: ${error.message}`));
     });
   });
 }

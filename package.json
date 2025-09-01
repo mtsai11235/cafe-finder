@@ -2,22 +2,13 @@
   "name": "cafe-finder",
   "version": "1.0.0",
   "description": "A web app to find nearby cafes using Google Maps API",
-  "main": "index.html",
+  "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "build": "next build"
   },
-  "keywords": [
-    "google-maps",
-    "cafe",
-    "finder",
-    "places-api"
-  ],
   "engines": {
     "node": ">=14.0.0"
   },
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "next": "^13.0.0",

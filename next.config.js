@@ -2,21 +2,16 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // Serve static files from the public directory
-  // This will make our HTML, CSS, and JS files accessible
-  // without having to move them to the pages directory
-  async rewrites() {
-    return [
-      {
-        source: '/',
-        destination: '/index.html',
-      },
-      {
-        source: '/:path*',
-        destination: '/:path*',
-      },
-    ];
-  },
+  
+  // Configure the output for Vercel deployment
+  output: 'standalone',
+  
+  // Disable automatic static optimization for the index page
+  // This ensures Next.js properly renders our page
+  experimental: {
+    // This allows us to use fs module in getStaticProps
+    serverComponentsExternalPackages: ['fs']
+  }
 };
 
 module.exports = nextConfig;
