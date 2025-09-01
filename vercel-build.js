@@ -20,17 +20,19 @@ if (!apiKey) {
   // Don't fail the build, but make it clear there's an issue
 }
 
-// Create config.js file with the API key
+// Create a placeholder config file (API key is now handled by serverless functions)
 const configContent = `// This file is auto-generated during build - do not edit manually
+// The actual API key is now handled securely by serverless functions
 window.RUNTIME_CONFIG = {
-  GOOGLE_MAPS_API_KEY: "${apiKey}",
+  API_VERSION: "2.0",
+  USES_SERVERLESS: true,
+  BUILD_TIME: "${new Date().toISOString()}"
 };
 
 // For compatibility with existing code
 const CONFIG = window.RUNTIME_CONFIG;
 
-// Log the API key status (but not the actual key) for debugging
-console.log("API Key status: " + (window.RUNTIME_CONFIG.GOOGLE_MAPS_API_KEY ? "Loaded from environment" : "Missing"));
+console.log("Using secure serverless API key handling");
 `;
 
 // Write the file to dist directory

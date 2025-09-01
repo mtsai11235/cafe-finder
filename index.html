@@ -30,7 +30,7 @@
     <!-- Secure API client for Google Maps -->
     <script src="secure-api.js"></script>
     <script src="script.js"></script>
-    <!-- Google Maps API loading with secure proxy -->
+    <!-- Load Google Maps API securely -->
     <script>
         // Check if ad blockers might be causing issues
         function checkForAdBlockers() {
@@ -68,27 +68,27 @@
             }, 100);
         }
 
-        // Load the Google Maps script securely once the page is ready
-        window.addEventListener('load', function() {
-            // Check for ad blockers
-            checkForAdBlockers();
-            
-            // Show loading indicator in the map container
+        // Show loading indicator in the map container
+        document.getElementById('map').innerHTML = 
+            '<div style="display:flex;justify-content:center;align-items:center;height:100%;flex-direction:column;">' +
+            '<div style="margin-bottom:20px;">Loading Google Maps...</div>' +
+            '<div class="loading-spinner"></div>' +
+            '</div>';
+        
+        // Check for ad blockers
+        checkForAdBlockers();
+        
+        // Load the API key script from our serverless function
+        // This script will automatically load the Google Maps API with the secure key
+        const apiKeyScript = document.createElement('script');
+        apiKeyScript.src = '/api/maps-key';
+        apiKeyScript.onerror = function() {
+            console.error('Failed to load API key');
             document.getElementById('map').innerHTML = 
-                '<div style="display:flex;justify-content:center;align-items:center;height:100%;flex-direction:column;">' +
-                '<div style="margin-bottom:20px;">Loading Google Maps...</div>' +
-                '<div class="loading-spinner"></div>' +
-                '</div>';
-            
-            // Load Google Maps API securely through our proxy
-            SecureAPI.loadMapsApi('initMap', 'places')
-                .catch(error => {
-                    console.error('Failed to load Google Maps:', error);
-                    document.getElementById('map').innerHTML = 
-                        '<div style="text-align:center;padding:20px;"><h3>Error Loading Google Maps</h3>' +
-                        '<p>There was an error loading Google Maps. Please try again later.</p></div>';
-                });
-        });
+                '<div style="text-align:center;padding:20px;"><h3>Error Loading Google Maps</h3>' +
+                '<p>There was an error loading the API key. Please try again later.</p></div>';
+        };
+        document.head.appendChild(apiKeyScript);
         
         // Define a global error handler for Google Maps API errors
         window.gm_authFailure = function() {
