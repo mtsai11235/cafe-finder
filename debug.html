@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        button {
+            padding: 8px 16px;
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #3367D6;
+        }
+        pre {
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>API Debug Page</h1>
+    <p>This page helps debug the serverless functions and API key loading.</p>
+    
+    <div class="card">
+        <h2>Health Check</h2>
+        <button onclick="checkHealth()">Check Health</button>
+        <div id="health-result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Maps URL Generator</h2>
+        <button onclick="getMapsUrl()">Get Maps URL</button>
+        <div id="maps-url-result"></div>
+    </div>
+    
+    <div class="card">
+        <h2>Load Google Maps</h2>
+        <button onclick="loadMaps()">Load Maps API</button>
+        <div id="maps-load-result"></div>
+        <div id="mini-map" style="height: 200px; margin-top: 10px; display: none;"></div>
+    </div>
+    
+    <script>
+        // Check the health endpoint
+        function checkHealth() {
+            const resultDiv = document.getElementById('health-result');
+            resultDiv.innerHTML = 'Loading...';
+            
+            fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    resultDiv.innerHTML = `<p class="success">Health check successful!</p>
+                                          <pre>${JSON.stringify(data, null, 2)}</pre>`;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<p class="error">Health check failed: ${error.message}</p>`;
+                });
+        }
+        
+        // Get the Maps URL
+        function getMapsUrl() {
+            const resultDiv = document.getElementById('maps-url-result');
+            resultDiv.innerHTML = 'Loading...';
+            
+            fetch('/api/get-maps-url')
+                .then(response => response.json())
+                .then(data => {
+                    // Show the URL but mask the API key
+                    let displayUrl = data.url;
+                    if (displayUrl) {
+                        displayUrl = displayUrl.replace(/key=([^&]+)/, 'key=API_KEY_HIDDEN');
+                    }
+                    
+                    resultDiv.innerHTML = `<p class="success">URL generated successfully!</p>
+                                          <pre>${displayUrl}</pre>`;
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<p class="error">Failed to get Maps URL: ${error.message}</p>`;
+                });
+        }
+        
+        // Load the Maps API
+        function loadMaps() {
+            const resultDiv = document.getElementById('maps-load-result');
+            const mapDiv = document.getElementById('mini-map');
+            resultDiv.innerHTML = 'Loading Google Maps API...';
+            mapDiv.style.display = 'none';
+            
+            // First get the URL from our serverless function
+            fetch('/api/get-maps-url')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.url) {
+                        throw new Error('Invalid response from server');
+                    }
+                    
+                    // Create a promise to load the script
+                    const loadScript = new Promise((resolve, reject) => {
+                        // Define a callback function
+                        window.initTestMap = function() {
+                            resolve();
+                        };
+                        
+                        // Create and append the script
+                        const script = document.createElement('script');
+                        script.src = data.url.replace('initMap', 'initTestMap');
+                        script.async = true;
+                        script.defer = true;
+                        script.onerror = function() {
+                            reject(new Error('Failed to load Google Maps API'));
+                        };
+                        document.head.appendChild(script);
+                    });
+                    
+                    return loadScript;
+                })
+                .then(() => {
+                    resultDiv.innerHTML = `<p class="success">Google Maps API loaded successfully!</p>`;
+                    
+                    // Show a mini map
+                    mapDiv.style.display = 'block';
+                    new google.maps.Map(mapDiv, {
+                        center: { lat: 37.7749, lng: -122.4194 },
+                        zoom: 12
+                    });
+                })
+                .catch(error => {
+                    resultDiv.innerHTML = `<p class="error">Failed to load Google Maps API: ${error.message}</p>`;
+                });
+        }
+    </script>
+</body>
+</html>

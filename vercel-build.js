@@ -98,7 +98,8 @@ const filesToCopy = [
   'styles.css',
   'secure-api.js',
   'README.md',
-  'vercel-deployment.md'
+  'vercel-deployment.md',
+  'debug.html'
 ];
 
 filesToCopy.forEach(file => {
