@@ -1,5 +1,15 @@
 // This script runs during Vercel build to create a config.js with environment variables
 const fs = require('fs');
+const path = require('path');
+
+console.log('Starting Vercel build process...');
+
+// Create dist directory if it doesn't exist
+const distDir = './dist';
+if (!fs.existsSync(distDir)) {
+  fs.mkdirSync(distDir);
+  console.log('Created dist directory');
+}
 
 // Get API key from environment variable
 const apiKey = process.env.GOOGLE_MAPS_API_KEY || '';
@@ -23,11 +33,11 @@ const CONFIG = window.RUNTIME_CONFIG;
 console.log("API Key status: " + (window.RUNTIME_CONFIG.GOOGLE_MAPS_API_KEY ? "Loaded from environment" : "Missing"));
 `;
 
-// Write the file
-fs.writeFileSync('./config.js', configContent);
+// Write the file to dist directory
+fs.writeFileSync(path.join(distDir, 'config.js'), configContent);
 console.log('Generated config.js with environment variables');
 
-// Also create a verification file to help debug
+// Create a verification file to help debug
 const verificationContent = `
 <!DOCTYPE html>
 <html lang="en">
@@ -76,5 +86,26 @@ const verificationContent = `
 </html>
 `;
 
-fs.writeFileSync('./verify-env.html', verificationContent);
+fs.writeFileSync(path.join(distDir, 'verify-env.html'), verificationContent);
 console.log('Generated verification page for environment variables');
+
+// Copy all necessary files to dist directory
+const filesToCopy = [
+  'index.html',
+  'script.js',
+  'styles.css',
+  'deploy-config.js',
+  'README.md',
+  'vercel-deployment.md'
+];
+
+filesToCopy.forEach(file => {
+  if (fs.existsSync(file)) {
+    fs.copyFileSync(file, path.join(distDir, file));
+    console.log(`Copied ${file} to dist directory`);
+  } else {
+    console.warn(`Warning: File ${file} not found, skipping`);
+  }
+});
+
+console.log('Build completed successfully!');
