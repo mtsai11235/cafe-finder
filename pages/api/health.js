@@ -1,9 +1,18 @@
-// Simple health check endpoint to verify serverless functions are working
+/**
+ * Health check endpoint to verify serverless functions are working
+ */
+import { setCorsHeaders, handleOptions, validateMethod, handleError } from '../../lib/api-utils';
+
 export default async function handler(req, res) {
   try {
     // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    setCorsHeaders(res);
+    
+    // Handle OPTIONS request (preflight)
+    if (handleOptions(req, res)) return;
+    
+    // Validate request method
+    if (!validateMethod(req, res, ['GET'])) return;
     
     // Get API key status (without revealing the key)
     const apiKeyStatus = process.env.GOOGLE_MAPS_API_KEY ? 'configured' : 'missing';
@@ -12,15 +21,11 @@ export default async function handler(req, res) {
     res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      environment: process.env.VERCEL_ENV || 'development',
+      environment: process.env.VERCEL_ENV || 'production',
       apiKeyStatus: apiKeyStatus,
-      node: process.version
+      version: '1.0.0'
     });
   } catch (error) {
-    console.error('Health check error:', error);
-    res.status(500).json({ 
-      status: 'error',
-      message: error.message
-    });
+    handleError(res, error, 'Health check failed');
   }
 }
