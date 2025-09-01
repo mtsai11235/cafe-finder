@@ -65,7 +65,20 @@ git push -u origin main
 3. Add the following environment variable:
    - Name: `GOOGLE_MAPS_API_KEY`
    - Value: Your Google Maps API key
-4. Click "Save"
+4. Make sure to select all environments (Production, Preview, and Development)
+5. Click "Save"
+6. **Important**: After adding the environment variable, you must redeploy your project for the changes to take effect:
+   - Go to "Deployments" tab
+   - Find your latest deployment
+   - Click the three dots menu (⋮)
+   - Select "Redeploy"
+
+### 5. Verify Environment Variables
+
+1. After deployment, visit `your-deployment-url.vercel.app/verify-env.html`
+2. This page will check if your API key is properly loaded
+3. If you see a green success message, your API key is working correctly
+4. If you see an error message, follow the instructions on the page to fix the issue
 
 ### 5. Configure Domain Settings (Optional)
 
