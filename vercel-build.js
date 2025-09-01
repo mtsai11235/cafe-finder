@@ -94,7 +94,7 @@ const filesToCopy = [
   'index.html',
   'script.js',
   'styles.css',
-  'deploy-config.js',
+  'secure-api.js',
   'README.md',
   'vercel-deployment.md'
 ];

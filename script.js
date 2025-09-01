@@ -216,26 +216,38 @@ function searchCafes() {
             return;
         }
         
-        // Try to use Google's Geocoder
-        try {
-            const geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ address: input }, (results, status) => {
-                if (status === "OK" && results && results[0]) {
-                    const location = results[0].geometry.location;
+            // Try to use our secure geocoding API
+    try {
+        // Show loading indicator
+        document.getElementById("places-list").innerHTML = "<p>Searching for location...</p>";
+        
+        // Use our secure API to geocode the address
+        SecureAPI.geocode({ address: input })
+            .then(response => {
+                if (response.status === "OK" && response.results && response.results.length > 0) {
+                    const result = response.results[0];
+                    const location = {
+                        lat: result.geometry.location.lat,
+                        lng: result.geometry.location.lng
+                    };
+                    
                     map.setCenter(location);
                     
                     // Search for cafes near this location
                     searchCafesNearby(location);
                 } else {
-                    console.error("Geocoding failed with status:", status);
+                    console.error("Geocoding failed with status:", response.status);
                     
                     // Fallback to a hardcoded location based on the search input
-                    // This is a very simplified fallback and won't work well for all inputs
                     alert("Geocoding service failed. Using approximate location instead.");
                     const fallbackLocation = approximateLocation(input);
                     map.setCenter(fallbackLocation);
                     searchCafesNearby(fallbackLocation);
                 }
+            })
+            .catch(error => {
+                console.error("Geocoding error:", error);
+                alert("Error with geocoding service. Please try again later.");
             });
         } catch (error) {
             console.error("Geocoding error:", error);
@@ -291,23 +303,37 @@ function searchCafesNearby(location) {
     document.getElementById("places-list").innerHTML = "<p>Searching for cafes...</p>";
     
     try {
-        // Define search request - using only one type as the API expects a single string, not an array
-        const request = {
-            location: location,
+        // Define search request parameters
+        const params = {
+            location: `${location.lat},${location.lng}`,
             radius: 1500, // Search within 1500 meters
             keyword: "cafe coffee",
             type: "cafe" // The API expects a single type, not an array
         };
         
-        console.log("Searching with request:", request);
+        console.log("Searching with params:", params);
         
-        // Perform nearby search with error handling
-        try {
-            service.nearbySearch(request, handleSearchResults);
-        } catch (error) {
-            console.error("Error in nearbySearch call:", error);
-            searchWithTextSearch(location);
-        }
+        // Perform nearby search with our secure API
+        SecureAPI.nearbySearch(params)
+            .then(response => {
+                console.log("Search status:", response.status);
+                console.log("Results:", response.results);
+                
+                if (response.status === "OK" && response.results && response.results.length > 0) {
+                    // Display results on map and in list
+                    displayResults(response.results);
+                } else if (response.status === "ZERO_RESULTS") {
+                    // Try searching for restaurants that might be cafes
+                    searchWithType("restaurant");
+                } else {
+                    // Try using textSearch as a fallback
+                    searchWithTextSearch(location);
+                }
+            })
+            .catch(error => {
+                console.error("Error in nearbySearch call:", error);
+                searchWithTextSearch(location);
+            });
     } catch (error) {
         console.error("Error in searchCafesNearby:", error);
         document.getElementById("places-list").innerHTML = 
@@ -336,47 +362,67 @@ function handleSearchResults(results, status) {
 function searchWithType(typeValue) {
     console.log("Trying search with type:", typeValue);
     const center = map.getCenter();
-    const request = {
-        location: center,
+    const params = {
+        location: `${center.lat()},${center.lng()}`,
         radius: 2000,
         keyword: "coffee cafe",
         type: typeValue
     };
     
-    service.nearbySearch(request, (results, status) => {
-        console.log(`${typeValue} search status:`, status);
-        console.log(`${typeValue} results:`, results);
-        
-        if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-            displayResults(results);
-        } else {
-            // Try textSearch as a last resort
+    SecureAPI.nearbySearch(params)
+        .then(response => {
+            console.log(`${typeValue} search status:`, response.status);
+            console.log(`${typeValue} results:`, response.results);
+            
+            if (response.status === "OK" && response.results && response.results.length > 0) {
+                displayResults(response.results);
+            } else {
+                // Try textSearch as a last resort
+                searchWithTextSearch(center);
+            }
+        })
+        .catch(error => {
+            console.error(`Error in ${typeValue} search:`, error);
             searchWithTextSearch(center);
-        }
-    });
+        });
 }
 
 // Use textSearch as a fallback
 function searchWithTextSearch(location) {
     console.log("Trying textSearch as fallback");
-    const request = {
-        location: location,
+    
+    // Convert location to string if it's a LatLng object
+    let locationStr;
+    if (typeof location.lat === 'function') {
+        locationStr = `${location.lat()},${location.lng()}`;
+    } else {
+        locationStr = `${location.lat},${location.lng}`;
+    }
+    
+    const params = {
+        location: locationStr,
         radius: 2500,
         query: "coffee cafe"
     };
     
     try {
-        service.textSearch(request, (results, status) => {
-            console.log("Text search status:", status);
-            console.log("Text search results:", results);
-            
-            if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
-                displayResults(results);
-            } else {
+        SecureAPI.textSearch(params)
+            .then(response => {
+                console.log("Text search status:", response.status);
+                console.log("Text search results:", response.results);
+                
+                if (response.status === "OK" && response.results && response.results.length > 0) {
+                    displayResults(response.results);
+                } else {
+                    document.getElementById("places-list").innerHTML = 
+                        "<p>No cafes found nearby. Try a different location or search term.</p>";
+                }
+            })
+            .catch(error => {
+                console.error("Error in textSearch:", error);
                 document.getElementById("places-list").innerHTML = 
                     "<p>No cafes found nearby. Try a different location or search term.</p>";
-            }
-        });
+            });
     } catch (error) {
         console.error("Error in textSearch:", error);
         document.getElementById("places-list").innerHTML = 
@@ -516,41 +562,53 @@ function displayResults(places) {
 
 // Get and display detailed information about a place
 function getPlaceDetails(placeId, marker) {
-    const request = {
-        placeId: placeId,
-        fields: ["name", "formatted_address", "website", "formatted_phone_number", "opening_hours", "rating", "reviews"],
+    const params = {
+        place_id: placeId,
+        fields: "name,formatted_address,website,formatted_phone_number,opening_hours,rating,reviews"
     };
     
-    service.getDetails(request, (place, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK) {
-            // Create content for info window
-            let content = `<div class="info-window">
-                <h3>${place.name}</h3>
-                <p>${place.formatted_address || ""}</p>`;
-            
-            if (place.formatted_phone_number) {
-                content += `<p>Phone: ${place.formatted_phone_number}</p>`;
+    SecureAPI.getPlaceDetails(params)
+        .then(response => {
+            if (response.status === "OK" && response.result) {
+                const place = response.result;
+                
+                // Create content for info window
+                let content = `<div class="info-window">
+                    <h3>${place.name}</h3>
+                    <p>${place.formatted_address || ""}</p>`;
+                
+                if (place.formatted_phone_number) {
+                    content += `<p>Phone: ${place.formatted_phone_number}</p>`;
+                }
+                
+                if (place.website) {
+                    content += `<p><a href="${place.website}" target="_blank">Website</a></p>`;
+                }
+                
+                if (place.rating) {
+                    content += `<p>Rating: ${place.rating} ⭐</p>`;
+                }
+                
+                if (place.opening_hours && place.opening_hours.weekday_text) {
+                    content += `<p>Hours:<br>${place.opening_hours.weekday_text.join("<br>")}</p>`;
+                }
+                
+                content += `</div>`;
+                
+                // Open info window at marker position
+                infowindow.setContent(content);
+                infowindow.open(map, marker);
+            } else {
+                console.error("Error getting place details:", response.status);
+                infowindow.setContent("<div class='info-window'><p>Error loading place details</p></div>");
+                infowindow.open(map, marker);
             }
-            
-            if (place.website) {
-                content += `<p><a href="${place.website}" target="_blank">Website</a></p>`;
-            }
-            
-            if (place.rating) {
-                content += `<p>Rating: ${place.rating} ⭐</p>`;
-            }
-            
-            if (place.opening_hours && place.opening_hours.weekday_text) {
-                content += `<p>Hours:<br>${place.opening_hours.weekday_text.join("<br>")}</p>`;
-            }
-            
-            content += `</div>`;
-            
-            // Open info window at marker position
-            infowindow.setContent(content);
+        })
+        .catch(error => {
+            console.error("Error getting place details:", error);
+            infowindow.setContent("<div class='info-window'><p>Error loading place details</p></div>");
             infowindow.open(map, marker);
-        }
-    });
+        });
 }
 
 // Clear all markers from the map
