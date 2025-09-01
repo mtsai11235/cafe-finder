@@ -1,0 +1,17 @@
+{
+  "name": "cafe-finder",
+  "version": "1.0.0",
+  "description": "A web app to find nearby cafes using Google Maps API",
+  "main": "index.html",
+  "scripts": {
+    "build": "node vercel-build.js"
+  },
+  "keywords": [
+    "google-maps",
+    "cafe",
+    "finder",
+    "places-api"
+  ],
+  "author": "",
+  "license": "MIT"
+}
